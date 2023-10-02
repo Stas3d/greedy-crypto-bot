@@ -10,7 +10,7 @@ import com.binance.api.client.domain.account.request.CancelOrderRequest;
 import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.account.request.OrderRequest;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -19,25 +19,20 @@ import java.util.List;
 
 import static com.algotrader.util.Constants.USDT;
 
-@Slf4j
+@Log
 @Component
 public class OrderClientService {
 
     @Value("${api.key}")
     private String apiKey;
-
     @Value("${api.secret}")
     private String apiSecret;
-
     @Value("${current.trade.pair}")
     private String currentTradePair;
-
     @Value("${enter.price}")
     private double enterPriceParam;
-
     @Value("${exit.price}")
     private double exitPriceParam;
-
     @Value("${exit.strategy.percentage}")
     private double exitLevel;
 
@@ -45,9 +40,9 @@ public class OrderClientService {
 
     @PostConstruct
     public void postConstruct() {
-        logger.warn("*** *** *** GRID BOT *** *** ***");
+
         logger.info("*** *** *** GRID BOT *** *** ***");
-        logger.debug("*** Current settings : currentTradePair = " + currentTradePair +
+        logger.info("*** Current settings : currentTradePair = " + currentTradePair +
                 "; enterPriceParam + " + enterPriceParam
                 + "; exitPriceParam = " + exitPriceParam
                 + "; exit level percentage = " + exitLevel + "%;");
@@ -57,11 +52,10 @@ public class OrderClientService {
                 .newRestClient();
 
         restClient.ping();
+        logger.info("*** *** *** *** *** *** *** *** *** *** *** ");
+        logger.info("*** Asset Balance for BTC = " + restClient.getAccount().getAssetBalance("BTC"));
+        logger.info("*** Asset Balance for USDT = " + restClient.getAccount().getAssetBalance(USDT));
 
-        //  System.out.println("*** Asset Balance for BTC = " + restClient.getAccount().getAssetBalance(currentCoin));
-        System.out.println("*** Asset Balance for USDT = " + restClient.getAccount().getAssetBalance(USDT));
-        System.out.println("*** *** *** *** *** *** *** *** *** *** *** ");
-        // System.out.println("*** Balance for USDT = " + getBalanceForCurrency(restClient.getAccount().getAssetBalance(USDT)));
     }
 
     public Account getAcc() {

@@ -21,10 +21,12 @@ public class LastTrendCache {
             .build();
 
     public void save(Double v) {
+
         cache.put(LocalDateTime.now(), v);
     }
 
     public OptionalDouble getAverage() {
+
         return cache.asMap()
                 .values()
                 .stream()
@@ -33,6 +35,7 @@ public class LastTrendCache {
     }
 
     public long getCount() {
+
         return cache.asMap()
                 .values()
                 .stream()
