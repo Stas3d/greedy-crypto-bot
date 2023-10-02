@@ -3,34 +3,23 @@ package com.algotrader.service;
 import com.algotrader.cache.LastTrendCache;
 import com.algotrader.util.Constants;
 import com.algotrader.util.Converter;
-
 import com.binance.api.client.domain.OrderSide;
 import com.binance.api.client.domain.OrderStatus;
-
-import com.binance.api.client.BinanceApiClientFactory;
-import com.binance.api.client.BinanceApiRestClient;
-import com.binance.api.client.domain.OrderSide;
-
 import com.binance.api.client.domain.TimeInForce;
 import com.binance.api.client.domain.account.AssetBalance;
 import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.account.Order;
-
-import com.binance.api.client.domain.account.request.CancelOrderRequest;
 import com.binance.api.client.domain.account.request.CancelOrderResponse;
-import com.binance.api.client.domain.account.request.OrderRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static com.algotrader.util.Constants.*;
-
 import static com.binance.api.client.domain.account.NewOrder.limitBuy;
 import static com.binance.api.client.domain.account.NewOrder.limitSell;
 import static com.binance.api.client.domain.account.NewOrder.marketBuy;
@@ -64,48 +53,21 @@ public class TradingStrategy {
 
     private final OrderClientService restClient;
 
-    public double getBalance(String currency) {
+    public double getBalanceFor(String currency) {
 
         return getBalanceForCurrency(restClient.getAcc().getAssetBalance(currency));
     }
 
-    @PostConstruct
-    public void postConstruct() {
-        System.out.println("*** *** *** GRID BOT *** *** ***");
-        System.out.println("*** Current settings : currentTradePair = " + currentTradePair +
-                "; enterPriceParam + " + enterPriceParam
-                + "; exitPriceParam = " + exitPriceParam
-                + "; exit level percentage = " + exitLevel + "%;");
-
-        restClient = BinanceApiClientFactory
-                .newInstance(apiKey, apiSecret)
-                .newRestClient();
-
-        restClient.ping();
-
-        System.out.println("*** Asset Balance for BTC = " + restClient.getAccount().getAssetBalance(currentCoin));
-        System.out.println("*** Asset Balance for USDT = " + restClient.getAccount().getAssetBalance(USDT));
-        System.out.println("*** *** *** *** *** *** *** *** *** *** *** ");
-        System.out.println("*** Balance for USDT = " + getBalanceForCurrency(restClient.getAccount().getAssetBalance(USDT)));
-    }
-
-
-    public double getBalance(String currency) {
-        return getBalanceForCurrency(restClient.getAccount().getAssetBalance(currency));
-    }
-
     public void saveCurrentPrice() {
-        String currentPrice = restClient.getPrice(currentTradePair).getPrice();
 
+        String currentPrice = restClient.getCurrentPrice(currentTradePair);
         trendCache.save(parseDouble(currentPrice));
     }
 
     public void executeLogic() {
 
-
         if (!canEnter()) {
             logger.info(WAITING_MSG);
-
             return;
         }
         List<Order> openOrders = getOpenOrders();
@@ -116,25 +78,20 @@ public class TradingStrategy {
 
         if (isFirstRun) {
             showTime();
-
             var current = (currentOrder != null) ? currentOrder : ORDER_UNAVAILABLE_MSG;
             logger.info(current.toString());
-
             isFirstRun = false;
         }
 
         if (panicStrategyService.isThreshold()) {
-
             logger.info("*** EMERGENCY PANIC SELL");
             String orderId = panicSell();
             logger.info("*** EMERGENCY orderId is " + orderId);
-
             panicStrategyService.initiateAppShutDown();
         }
 
         if (openOrders.isEmpty() && isEnoughAssetBalance(USDT, enoughAssetBalance)) {
             showTime();
-
             logger.info(BUY_MSG);
             double enterPrice = findEnterPrice();
             String orderId = createBuyOrder(enterPrice);
@@ -146,7 +103,6 @@ public class TradingStrategy {
             double enterPrice = findExitPrice();
             String orderId = createSellOrder(enterPrice);
             logger.info(SELL_ORDER_MSG + orderId);
-
         } else if (currentOrder != null && OrderSide.BUY.equals(currentOrder.getSide())) {
             if (checkIfNeedExit(currentOrder.getPrice())) {
                 cancelOrder(currentOrder.getClientOrderId());
@@ -157,9 +113,7 @@ public class TradingStrategy {
                 cancelOrder(currentOrder.getClientOrderId());
             }
         } else {
-
             logger.info(UNEXPECTED_MSG + currentOrder);
-
         }
     }
 
@@ -170,60 +124,46 @@ public class TradingStrategy {
 
     public String panicSell() {
 
-
         logger.info("*** EMERGENCY SELL " + getAssetBalanceForCurrency(USDT));
         NewOrderResponse newOrderResponse = restClient.createOrder(marketSell(currentTradePair, buyQuantity));
         logger.info("*** SELL EMERGENCY SELL order created with status : " + newOrderResponse.getStatus() +
-
                 " with price : " + newOrderResponse.getPrice());
         return newOrderResponse.getClientOrderId();
     }
 
     public void cancelCurrentOrder() {
 
-
         logger.info("*** Cancel Current Order ***");
-
         List<Order> openOrders = getOpenOrders();
         if (!openOrders.isEmpty()) {
             Order currentOrder = openOrders.get(0);
             cancelOrder(currentOrder.getClientOrderId());
         } else {
-
             logger.info("*** No Order Found ***");
-
         }
     }
 
     public void cancelAllOrders() {
 
-
         logger.info("*** Cancel All Orders for trade pair " + currentTradePair + "***");
-
         List<Order> openOrders = getOpenOrders();
         if (!openOrders.isEmpty()) {
             openOrders.forEach(el -> cancelOrder(el.getClientOrderId()));
         } else {
-
             logger.info("*** No Orders Found ***");
-
         }
     }
 
     public String cancelCurrentOrderAndBuy() {
 
         logger.info("*** Cancel Current Order And Buy");
-
-
         List<Order> openOrders = getOpenOrders();
         if (!openOrders.isEmpty()) {
             Order currentOrder = openOrders.get(0);
             cancelOrder(currentOrder.getClientOrderId());
         }
-
         NewOrderResponse newOrderResponse = restClient.createOrder(marketBuy(currentTradePair, buyQuantity));
         logger.info("*** Buy for current price order created with status : " + newOrderResponse.getStatus() +
-
                 " with price : " + newOrderResponse.getPrice());
         return newOrderResponse.getClientOrderId();
     }
@@ -237,7 +177,6 @@ public class TradingStrategy {
 
     private String createBuyOrder(double enterPrice) {
 
-
         logger.info(CURRENT_BALANCE_MSG + getAssetBalanceForCurrency(USDT));
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
         NewOrderResponse newOrderResponse = restClient.createOrder(
@@ -247,20 +186,17 @@ public class TradingStrategy {
             logger.info("*** newOrderResponse REJECTED ");
         }
         logger.info("*** BUY order created with status : " + newOrderResponse.getStatus() +
-
                 " with price : " + newOrderResponse.getPrice());
         return newOrderResponse.getClientOrderId();
     }
 
     private String createSellOrder(double enterPrice) {
 
-
         logger.info(CURRENT_BALANCE_MSG + getAssetBalanceForCurrency(USDT));
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
         NewOrderResponse newOrderResponse = restClient.createOrder(
                 limitSell(currentTradePair, TimeInForce.GTC, buyQuantity, formatPrice));
         logger.info("*** SELL order created with status : " + newOrderResponse.getStatus() +
-
                 "with price : " + newOrderResponse.getPrice());
         return newOrderResponse.getClientOrderId();
     }
@@ -268,12 +204,6 @@ public class TradingStrategy {
     private List<Order> getOpenOrders() {
 
         return restClient.getOpenOrders(currentTradePair);
-    }
-
-    private double findEnterPrice() {
-
-        OrderRequest orderRequest = new OrderRequest(currentTradePair);
-        return restClient.getOpenOrders(orderRequest);
     }
 
     private double findEnterPrice() {
@@ -293,29 +223,19 @@ public class TradingStrategy {
     private boolean isEnoughAssetBalance(String currency, Double limit) {
 
         String value = restClient.getAcc().getAssetBalance(currency).getFree();
-
         return Double.parseDouble(value) > limit;
     }
 
     private double getAssetBalanceForCurrency(String currency) {
 
         String value = restClient.getAcc().getAssetBalance(currency).getFree();
-
         return Double.parseDouble(value);
     }
 
     private void cancelOrder(String clientOrderId) {
 
-
         CancelOrderResponse orderResponse = restClient.cancelOrder(currentTradePair, clientOrderId);
         logger.info(ORDER_CANCELLED_MSG + orderResponse.getStatus());
-    }
-
-    private boolean canEnter() { // TODO REM0VE REDUNDANT
-
-        CancelOrderRequest orderRequest = new CancelOrderRequest(currentTradePair, clientOrderId);
-        CancelOrderResponse orderResponse = restClient.cancelOrder(orderRequest);
-        System.out.println(ORDER_CANCELLED_MSG + orderResponse.getStatus());
     }
 
     private boolean canEnter() { // TODO REM0VE REDUNDANT
@@ -330,10 +250,8 @@ public class TradingStrategy {
 
     private void showTime() {
 
-
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern(Constants.PATTERN);
         LocalDateTime now = LocalDateTime.now();
         logger.info("*** " + dtf.format(now));
-
     }
 }

@@ -15,7 +15,7 @@ public class ManualController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/balance/{currency}")
     public Balance getCurrentBalance(@PathVariable String currency) {
-        return new Balance(currency, Converter.convertToStringDecimal(strategy.getBalance(currency)));
+        return new Balance(currency, Converter.convertToStringDecimal(strategy.getBalanceFor(currency)));
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/manual/cancel-current-order")
