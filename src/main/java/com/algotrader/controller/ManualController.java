@@ -3,14 +3,14 @@ package com.algotrader.controller;
 import com.algotrader.dto.Balance;
 import com.algotrader.service.TradingStrategy;
 import com.algotrader.util.Converter;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 public class ManualController {
 
-    @Autowired
-    private TradingStrategy strategy;
+    private final TradingStrategy strategy;
 
     @RequestMapping(method = RequestMethod.GET, value = "/balance/{currency}")
     public Balance getCurrentBalance(@PathVariable String currency) {

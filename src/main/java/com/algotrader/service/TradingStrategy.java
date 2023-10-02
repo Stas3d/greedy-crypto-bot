@@ -11,6 +11,7 @@ import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.account.Order;
 import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ import static com.binance.api.client.domain.account.NewOrder.marketBuy;
 import static com.binance.api.client.domain.account.NewOrder.marketSell;
 import static java.lang.Double.parseDouble;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TradingStrategy {
@@ -51,11 +53,12 @@ public class TradingStrategy {
 
     private final PanicStrategyService panicStrategyService;
 
-    private final RestClientWrapper restClient;
+    private final OrderClientService restClient;
 
     @PostConstruct
     public void postConstruct() {
-        System.out.println("*** Asset Balance for BTC = "
+
+        logger.info("*** Asset Balance for BTC = "
                 + restClient.getAcc().getAssetBalance(currentCoin));
         System.out.println("*** Balance for USDT = "
                 + getBalanceForCurrency(restClient.getAcc().getAssetBalance(USDT)));

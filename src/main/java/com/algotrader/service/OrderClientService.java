@@ -9,6 +9,8 @@ import com.binance.api.client.domain.account.Order;
 import com.binance.api.client.domain.account.request.CancelOrderRequest;
 import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.account.request.OrderRequest;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +19,9 @@ import java.util.List;
 
 import static com.algotrader.util.Constants.USDT;
 
+@Slf4j
 @Component
-public class RestClientWrapper {
+public class OrderClientService {
 
     @Value("${api.key}")
     private String apiKey;
@@ -42,8 +45,9 @@ public class RestClientWrapper {
 
     @PostConstruct
     public void postConstruct() {
-        System.out.println("*** *** *** GRID BOT *** *** ***");
-        System.out.println("*** Current settings : currentTradePair = " + currentTradePair +
+        logger.warn("*** *** *** GRID BOT *** *** ***");
+        logger.info("*** *** *** GRID BOT *** *** ***");
+        logger.debug("*** Current settings : currentTradePair = " + currentTradePair +
                 "; enterPriceParam + " + enterPriceParam
                 + "; exitPriceParam = " + exitPriceParam
                 + "; exit level percentage = " + exitLevel + "%;");
