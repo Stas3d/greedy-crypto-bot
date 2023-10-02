@@ -60,12 +60,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.ta4j</groupId>
-            <artifactId>ta4j-core</artifactId>
-            <version>0.12</version>
-            <!--            <version>0.14</version>-->
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>31.1-jre</version>
