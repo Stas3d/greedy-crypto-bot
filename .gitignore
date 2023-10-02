@@ -1,0 +1,4 @@
+.gitignore
+/.idea
+/grid-bot.iml
+/target
