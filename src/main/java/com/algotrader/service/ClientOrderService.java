@@ -23,7 +23,7 @@ import static com.binance.api.client.domain.account.NewOrder.*;
 
 @Log
 @Component
-public class OrderClientService {
+public class ClientOrderService {
 
     @Value("${api.key}")
     private String apiKey;
@@ -96,9 +96,9 @@ public class OrderClientService {
         return createOrder(limitSell(currentTradePair, TimeInForce.GTC, quantity, price));
     }
 
-    public AssetBalance getBalanceForCurrency(@NonNull String currency) {
+    public String getFreeBalanceForCurrency(@NonNull String currency) {
 
-        return restClient.getAccount().getAssetBalance(currency);
+        return restClient.getAccount().getAssetBalance(currency).getFree();
     }
 
     public String getCurrentPrice(String currentTradePair) {

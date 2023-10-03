@@ -16,6 +16,7 @@ public class ScheduledService {
 
     @Scheduled(cron = "${cron.expression}")
     public void scheduled() {
+
         strategy.saveCurrentPrice();
         strategy.executeLogic();
     }

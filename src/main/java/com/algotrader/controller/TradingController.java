@@ -2,7 +2,6 @@ package com.algotrader.controller;
 
 import com.algotrader.dto.Balance;
 import com.algotrader.service.TradingStrategy;
-import com.algotrader.util.Converter;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +16,7 @@ public class TradingController {
     @RequestMapping(method = RequestMethod.GET, value = "/balance/{currency}")
     public ResponseEntity<Balance> getCurrentBalance(@PathVariable String currency) {
         return ResponseEntity.ok(
-                new Balance(currency, Converter.convertToStringDecimal(strategy.getBalanceFor(currency))));
+                new Balance(currency, strategy.getBalanceFor(currency)));
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/manual/cancel-current-order")

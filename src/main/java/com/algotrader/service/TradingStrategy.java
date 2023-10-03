@@ -4,7 +4,6 @@ import com.algotrader.cache.LastTrendCache;
 import com.algotrader.util.Constants;
 import com.algotrader.util.Converter;
 
-import com.binance.api.client.domain.account.AssetBalance; //ToDO extract api package from strategy
 import com.binance.api.client.domain.account.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -45,16 +44,16 @@ public class TradingStrategy {
 
     private final PanicStrategyService panicStrategyService;
 
-    private final OrderClientService restClient;
+    private final ClientOrderService orderService;
 
-    public double getBalanceFor(String currency) {
+    public String getBalanceFor(String currency) {
 
-        return getBalanceForCurrency(restClient.getBalanceForCurrency(currency));
+        return orderService.getFreeBalanceForCurrency(currency);
     }
 
     public void saveCurrentPrice() {
 
-        String currentPrice = restClient.getCurrentPrice(currentTradePair);
+        String currentPrice = orderService.getCurrentPrice(currentTradePair);
         trendCache.save(parseDouble(currentPrice));
     }
 
@@ -72,7 +71,8 @@ public class TradingStrategy {
                     .filter(Objects::nonNull)
                     .filter(Order::isWorking)
                     .filter(order -> Objects.equals(currentTradePair, order.getSymbol()))
-                    .findAny().orElseThrow(() -> new RuntimeException(UNEXPECTED_MSG));
+                    .findAny().orElseThrow(
+                            () -> new RuntimeException(UNEXPECTED_MSG));
         }
 
         if (isFirstRun) {
@@ -129,7 +129,7 @@ public class TradingStrategy {
     public String panicSell() {
 
         logger.info("*** EMERGENCY SELL " + getAssetBalanceForCurrency(USDT));
-        return restClient.createMarketSell(buyQuantity);
+        return orderService.createMarketSell(buyQuantity);
     }
 
     public void cancelCurrentOrder() {
@@ -166,7 +166,7 @@ public class TradingStrategy {
             cancelOrder(currentOrder.getClientOrderId());
         }
         logger.info("*** Buy for current price order ");
-        return restClient.createMarketBuy(buyQuantity);
+        return orderService.createMarketBuy(buyQuantity);
     }
 
     private boolean checkIfNeedExit(final String currentPrice) {
@@ -181,7 +181,7 @@ public class TradingStrategy {
         logger.info(CURRENT_BALANCE_MSG + getAssetBalanceForCurrency(USDT));
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
         logger.info("*** Creating BUY order ");
-        return restClient.createLimitBuy(buyQuantity, formatPrice);
+        return orderService.createLimitBuy(buyQuantity, formatPrice);
     }
 
     private String createSellOrder(double enterPrice) {
@@ -189,12 +189,12 @@ public class TradingStrategy {
         logger.info(CURRENT_BALANCE_MSG + getAssetBalanceForCurrency(USDT));
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
         logger.info("*** Creating SELL order ");
-        return restClient.createLimitSell(buyQuantity, formatPrice);
+        return orderService.createLimitSell(buyQuantity, formatPrice);
     }
 
     private List<Order> getOpenOrders() {
 
-        return restClient.getOpenOrders(currentTradePair);
+        return orderService.getOpenOrders(currentTradePair);
     }
 
     private double findEnterPrice() {
@@ -213,29 +213,24 @@ public class TradingStrategy {
 
     private boolean isEnoughAssetBalance(final String currency, final Double limit) {
 
-        String value = restClient.getBalanceForCurrency(currency).getFree();
+        String value = orderService.getFreeBalanceForCurrency(currency);
         return Double.parseDouble(value) > limit;
     }
 
     private double getAssetBalanceForCurrency(final String currency) {
 
-        String value = restClient.getBalanceForCurrency(currency).getFree();
+        String value = orderService.getFreeBalanceForCurrency(currency);
         return Double.parseDouble(value);
     }
 
     private void cancelOrder(String clientOrderId) {
 
-        restClient.cancelOrder(currentTradePair, clientOrderId);
+        orderService.cancelOrder(currentTradePair, clientOrderId);
     }
 
     private boolean canEnter() { // TODO REM0VE REDUNDANT
 
         return trendCache.isComfy();
-    }
-
-    private double getBalanceForCurrency(AssetBalance balance) {
-
-        return parseDouble(balance.getFree()) + parseDouble(balance.getLocked());
     }
 
     private void showTime() {
