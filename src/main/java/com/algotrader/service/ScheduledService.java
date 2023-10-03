@@ -18,6 +18,6 @@ public class ScheduledService {
     public void scheduled() {
 
         strategy.saveCurrentPrice();
-        strategy.executeLogic();
+        strategy.execute();
     }
 }

@@ -1,10 +1,11 @@
 package com.algotrader.service;
 
 import com.algotrader.cache.LastTrendCache;
+import com.algotrader.dto.ClientOrder;
+import com.algotrader.mapper.OrdersMapper;
 import com.algotrader.util.Constants;
 import com.algotrader.util.Converter;
 
-import com.binance.api.client.domain.account.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.algotrader.util.Constants.*;
 import static java.lang.Double.parseDouble;
@@ -46,6 +48,8 @@ public class TradingStrategy {
 
     private final ClientOrderService orderService;
 
+    private final OrdersMapper ordersMapper;
+
     public String getBalanceFor(String currency) {
 
         return orderService.getFreeBalanceForCurrency(currency);
@@ -57,20 +61,21 @@ public class TradingStrategy {
         trendCache.save(parseDouble(currentPrice));
     }
 
-    public void executeLogic() {
+    public void execute() {
 
         if (!canEnter()) {
             logger.info(WAITING_MSG);
             return;
         }
-        List<Order> openOrders = getOpenOrders();
+        List<ClientOrder> openOrders = getOpenOrders();
 
-        Order currentOrder = null;
+        ClientOrder currentOrder = null;
         if (!openOrders.isEmpty()) {
+
             currentOrder = openOrders.stream()
                     .filter(Objects::nonNull)
-                    .filter(Order::isWorking)
-                    .filter(order -> Objects.equals(currentTradePair, order.getSymbol()))
+                    .filter(ClientOrder::isWorking)
+                    .filter(order -> Objects.equals(currentTradePair, order.symbol()))
                     .findAny().orElseThrow(
                             () -> new RuntimeException(UNEXPECTED_MSG));
         }
@@ -104,15 +109,17 @@ public class TradingStrategy {
             String orderId = createSellOrder(enterPrice);
             logger.info(SELL_ORDER_MSG + orderId);
 
-        } else if (currentOrder != null && BUY_ORDER_SIDE.equals(currentOrder.getSide())) {
-            if (checkIfNeedExit(currentOrder.getPrice())) {
-                cancelOrder(currentOrder.getClientOrderId());
+        } else if (currentOrder != null && BUY_ORDER_SIDE.equals(currentOrder.side())) {
+
+            if (checkIfNeedExit(currentOrder.price())) {
+                cancelOrder(currentOrder.clientOrderId());
             }
 
-        } else if (currentOrder != null && SELL_ORDER_SIDE.equals(currentOrder.getSide())) {
-            if (checkIfNeedExit(currentOrder.getPrice())) {
+        } else if (currentOrder != null && SELL_ORDER_SIDE.equals(currentOrder.side())) {
+
+            if (checkIfNeedExit(currentOrder.price())) {
                 panicStrategyService.incrementSellCount();
-                cancelOrder(currentOrder.getClientOrderId());
+                cancelOrder(currentOrder.clientOrderId());
             }
 
         } else {
@@ -132,39 +139,21 @@ public class TradingStrategy {
         return orderService.createMarketSell(buyQuantity);
     }
 
-    public void cancelCurrentOrder() {
+    public void cancelCurrentOrders() {
 
-        logger.info("*** Cancel Current Order ***");
-        List<Order> openOrders = getOpenOrders();
+        logger.info("*** Cancel All Current Orders ***");
+        List<ClientOrder> openOrders = getOpenOrders();
         if (!openOrders.isEmpty()) {
-            Order currentOrder = openOrders.get(0);
-            cancelOrder(currentOrder.getClientOrderId());
+            openOrders.forEach(o ->
+                    cancelOrder(o.clientOrderId()));
         } else {
             logger.info("*** No Order Found ***");
         }
     }
 
-    public void cancelAllOrders() {
-
-        logger.info("*** Cancel All Orders for trade pair " + currentTradePair + "***");
-        List<Order> openOrders = getOpenOrders();
-        if (!openOrders.isEmpty()) {
-            openOrders.forEach(el -> cancelOrder(el.getClientOrderId()));
-        } else {
-            logger.info("*** No Orders Found ***");
-        }
-    }
-
     public String cancelCurrentOrderAndBuy() {
 
-        logger.info("*** Cancel Current Order And Buy");
-        List<Order> openOrders = getOpenOrders();
-        if (!openOrders.isEmpty()) {
-            Order currentOrder = openOrders.stream()
-                    .findAny()
-                    .get();
-            cancelOrder(currentOrder.getClientOrderId());
-        }
+        cancelCurrentOrders();
         logger.info("*** Buy for current price order ");
         return orderService.createMarketBuy(buyQuantity);
     }
@@ -178,7 +167,6 @@ public class TradingStrategy {
 
     private String createBuyOrder(double enterPrice) {
 
-        logger.info(CURRENT_BALANCE_MSG + getAssetBalanceForCurrency(USDT));
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
         logger.info("*** Creating BUY order ");
         return orderService.createLimitBuy(buyQuantity, formatPrice);
@@ -186,15 +174,17 @@ public class TradingStrategy {
 
     private String createSellOrder(double enterPrice) {
 
-        logger.info(CURRENT_BALANCE_MSG + getAssetBalanceForCurrency(USDT));
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
         logger.info("*** Creating SELL order ");
         return orderService.createLimitSell(buyQuantity, formatPrice);
     }
 
-    private List<Order> getOpenOrders() {
+    private List<ClientOrder> getOpenOrders() {
 
-        return orderService.getOpenOrders(currentTradePair);
+        return orderService.getOpenOrders(currentTradePair)
+                .stream()
+                .map(ordersMapper::toRecord)
+                .collect(Collectors.toList());
     }
 
     private double findEnterPrice() {

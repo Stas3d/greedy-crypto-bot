@@ -1,6 +1,6 @@
 package com.algotrader.controller;
 
-import com.algotrader.dto.Balance;
+import com.algotrader.dto.ClientBalance;
 import com.algotrader.service.TradingStrategy;
 
 import lombok.RequiredArgsConstructor;
@@ -14,14 +14,14 @@ public class TradingController {
     private final TradingStrategy strategy;
 
     @RequestMapping(method = RequestMethod.GET, value = "/balance/{currency}")
-    public ResponseEntity<Balance> getCurrentBalance(@PathVariable String currency) {
+    public ResponseEntity<ClientBalance> getCurrentBalance(@PathVariable String currency) {
         return ResponseEntity.ok(
-                new Balance(currency, strategy.getBalanceFor(currency)));
+                new ClientBalance(currency, strategy.getBalanceFor(currency)));
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/manual/cancel-current-order")
     public void cancelCurrent() {
-        strategy.cancelCurrentOrder();
+        strategy.cancelCurrentOrders();
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/manual/cancel-current-order-and-buy")

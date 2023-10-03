@@ -1,7 +1,7 @@
 package com.algotrader.service;
 
-import com.algotrader.exception.InvalidCredException;
-import com.algotrader.exception.NoCredsException;
+import com.algotrader.exception.InvalidCredentialsException;
+import com.algotrader.exception.NoCredentialsException;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.OrderStatus;
@@ -43,8 +43,8 @@ public class ClientOrderService {
     @PostConstruct
     public void postConstruct() {
 
-        logger.info("*** GRID BOT 2023 *** \n Current settings : currentTradePair = " + currentTradePair +
-                "; \nenterPriceParam + " + enterPriceParam
+        logger.info("*** GRID BOT 2023 *** \n Current settings : currentTradePair = " + currentTradePair
+                + "; \nenterPriceParam + " + enterPriceParam
                 + "; \nexitPriceParam = " + exitPriceParam
                 + "; \nexit level percentage = " + exitLevel + "%;");
 
@@ -54,7 +54,7 @@ public class ClientOrderService {
     private void initCheckPing() {
 
         if (apiKey.isEmpty() || apiSecret.isEmpty()) {
-            throw new NoCredsException();
+            throw new NoCredentialsException();
         }
 
         restClient = BinanceApiClientFactory
@@ -68,7 +68,10 @@ public class ClientOrderService {
             account = getAcc();
         } catch (com.binance.api.client.exception.BinanceApiException binanceApiException) {
             logger.warning("Signature is not valid, check credentials");
-            throw new InvalidCredException();
+            throw new InvalidCredentialsException();
+        } catch (Exception exception) {
+            logger.warning("Unknown exception");
+            throw new RuntimeException("Exception when first api call");
         }
         logger.info("*** Asset Balance for BTC = " + account.getAssetBalance(BTC));
         logger.info("*** Asset Balance for USDT = " + account.getAssetBalance(USDT));
