@@ -13,13 +13,19 @@ public class TradingController {
 
     private final TradingStrategy strategy;
 
-    @RequestMapping(method = RequestMethod.GET, value = "/balance/{currency}")
-    public ResponseEntity<ClientBalance> getCurrentBalance(@PathVariable String currency) {
+    @RequestMapping(method = RequestMethod.GET, value = "/balance/asset/{currency}")
+    public ResponseEntity<ClientBalance> getCurrentAssetBalance(@PathVariable String currency) {
         return ResponseEntity.ok(
-                new ClientBalance(currency, strategy.getBalanceFor(currency)));
+                new ClientBalance(currency, strategy.getAssetBalanceFor(currency)));
     }
 
-    @RequestMapping(method = RequestMethod.POST, value = "/manual/cancel-current-order")
+    @RequestMapping(method = RequestMethod.GET, value = "/balance/free/{currency}")
+    public ResponseEntity<ClientBalance> getCurrentFreeBalance(@PathVariable String currency) {
+        return ResponseEntity.ok(
+                new ClientBalance(currency, strategy.getFreeBalanceFor(currency)));
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "orders/cancel-all")
     public void cancelCurrent() {
         strategy.cancelCurrentOrders();
     }

@@ -104,6 +104,11 @@ public class ClientOrderService {
         return restClient.getAccount().getAssetBalance(currency).getFree();
     }
 
+    public String getAssetBalanceForCurrency(@NonNull String currency) {
+
+        return restClient.getAccount().getAssetBalance(currency).getAsset();
+    }
+
     public String getCurrentPrice(String currentTradePair) {
 
         return restClient.getPrice(currentTradePair).getPrice();

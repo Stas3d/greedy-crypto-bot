@@ -50,9 +50,14 @@ public class TradingStrategy {
 
     private final OrdersMapper ordersMapper;
 
-    public String getBalanceFor(String currency) {
+    public String getFreeBalanceFor(String currency) {
 
         return orderService.getFreeBalanceForCurrency(currency);
+    }
+
+    public String getAssetBalanceFor(String currency) {
+
+        return orderService.getAssetBalanceForCurrency(currency);
     }
 
     public void saveCurrentPrice() {
