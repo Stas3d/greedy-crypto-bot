@@ -1,15 +1,16 @@
 package com.algotrader.service;
 
+import com.algotrader.exception.InvalidCredException;
+import com.algotrader.exception.NoCredsException;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
-import com.binance.api.client.domain.account.Account;
-import com.binance.api.client.domain.account.NewOrder;
-import com.binance.api.client.domain.account.NewOrderResponse;
-import com.binance.api.client.domain.account.Order;
+import com.binance.api.client.domain.OrderStatus;
+import com.binance.api.client.domain.TimeInForce;
+import com.binance.api.client.domain.account.*;
 import com.binance.api.client.domain.account.request.CancelOrderRequest;
-import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.account.request.OrderRequest;
 
+import lombok.NonNull;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.util.List;
 
-import static com.algotrader.util.Constants.USDT;
+import static com.algotrader.util.Constants.*;
+import static com.binance.api.client.domain.account.NewOrder.*;
 
 @Log
 @Component
@@ -41,31 +43,62 @@ public class OrderClientService {
     @PostConstruct
     public void postConstruct() {
 
-        logger.info("*** *** *** GRID BOT *** *** ***");
-        logger.info("*** Current settings : currentTradePair = " + currentTradePair +
-                "; enterPriceParam + " + enterPriceParam
-                + "; exitPriceParam = " + exitPriceParam
-                + "; exit level percentage = " + exitLevel + "%;");
+        logger.info("*** GRID BOT 2023 *** \n Current settings : currentTradePair = " + currentTradePair +
+                "; \nenterPriceParam + " + enterPriceParam
+                + "; \nexitPriceParam = " + exitPriceParam
+                + "; \nexit level percentage = " + exitLevel + "%;");
+
+        initCheckPing();
+    }
+
+    private void initCheckPing() {
+
+        if (apiKey.isEmpty() || apiSecret.isEmpty()) {
+            throw new NoCredsException();
+        }
 
         restClient = BinanceApiClientFactory
                 .newInstance(apiKey, apiSecret)
                 .newRestClient();
 
         restClient.ping();
-        logger.info("*** *** *** *** *** *** *** *** *** *** *** ");
-        logger.info("*** Asset Balance for BTC = " + restClient.getAccount().getAssetBalance("BTC"));
-        logger.info("*** Asset Balance for USDT = " + restClient.getAccount().getAssetBalance(USDT));
 
+        Account account;
+        try {
+            account = getAcc();
+        } catch (com.binance.api.client.exception.BinanceApiException binanceApiException) {
+            logger.warning("Signature is not valid, check credentials");
+            throw new InvalidCredException();
+        }
+        logger.info("*** Asset Balance for BTC = " + account.getAssetBalance(BTC));
+        logger.info("*** Asset Balance for USDT = " + account.getAssetBalance(USDT));
     }
 
-    public Account getAcc() {
+    public String createMarketBuy(String quantity) {
 
-        return restClient.getAccount();
+        return createOrder(marketBuy(currentTradePair, quantity));
     }
 
-    public NewOrderResponse createOrder(NewOrder order) {
+    public String createMarketSell(String quantity) {
 
-        return restClient.newOrder(order);
+        return createOrder(marketSell(currentTradePair, quantity));
+    }
+
+    public String createLimitBuy(String quantity,
+                                 String price) {
+
+        return createOrder(limitBuy(currentTradePair, TimeInForce.GTC, quantity, price));
+    }
+
+    public String createLimitSell(String quantity,
+                                  String price) {
+
+        return createOrder(limitSell(currentTradePair, TimeInForce.GTC, quantity, price));
+    }
+
+    public AssetBalance getBalanceForCurrency(@NonNull String currency) {
+
+        return restClient.getAccount().getAssetBalance(currency);
     }
 
     public String getCurrentPrice(String currentTradePair) {
@@ -79,9 +112,31 @@ public class OrderClientService {
         return restClient.getOpenOrders(orderRequest);
     }
 
-    public CancelOrderResponse cancelOrder(String currentTradePair, String clientOrderId) {
+    public String cancelOrder(String currentTradePair, String clientOrderId) {
 
         CancelOrderRequest orderRequest = new CancelOrderRequest(currentTradePair, clientOrderId);
-        return restClient.cancelOrder(orderRequest);
+        var orderResponse = restClient.cancelOrder(orderRequest);
+        logger.info(ORDER_CANCELLED_MSG + orderResponse.getStatus());
+        return orderResponse.getStatus();
+    }
+
+    private String createOrder(NewOrder order) {
+
+        NewOrderResponse newOrderResponse = restClient.newOrder(order);
+
+        logger.info("*** New Order status : " + newOrderResponse.getStatus());
+        if (newOrderResponse.getStatus() == OrderStatus.REJECTED) {
+            logger.info("*** newOrderResponse REJECTED ");
+        }
+
+        logger.info("Order created with status : " + newOrderResponse.getStatus() +
+                " with price : " + newOrderResponse.getPrice());
+
+        return newOrderResponse.getClientOrderId();
+    }
+
+    private Account getAcc() {
+
+        return restClient.getAccount();
     }
 }

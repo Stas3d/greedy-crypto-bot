@@ -1,12 +1,15 @@
 package com.algotrader.util;
 
+import com.binance.api.client.domain.OrderSide;
+
 public class Constants {
 
+    public static final OrderSide SELL_ORDER_SIDE = OrderSide.SELL;
+    public static final OrderSide BUY_ORDER_SIDE = OrderSide.BUY;
+
     public static final String PATTERN = "yyyy/MM/dd HH:mm:ss";
-
-//    public static final String BTC = "BTC";
+    public static final String BTC = "BTC";
     public static final String USDT = "USDT";
-
     public static final String ORDER_UNAVAILABLE_MSG = "No current order available";
     public static final String UNEXPECTED_MSG = "*** unexpected case for order ...";
     public static final String BUY_MSG = "*** BUY ";
