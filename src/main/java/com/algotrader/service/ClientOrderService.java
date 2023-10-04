@@ -1,5 +1,6 @@
 package com.algotrader.service;
 
+import com.algotrader.dto.ClientBalance;
 import com.algotrader.exception.InvalidCredentialsException;
 import com.algotrader.exception.NoCredentialsException;
 import com.binance.api.client.BinanceApiClientFactory;
@@ -99,15 +100,12 @@ public class ClientOrderService {
         return createOrder(limitSell(currentTradePair, TimeInForce.GTC, quantity, price));
     }
 
-    public String getFreeBalanceForCurrency(@NonNull String currency) {
+    public ClientBalance getBalanceForCurrency(@NonNull String currency) {
 
-        return restClient.getAccount().getAssetBalance(currency).getFree();
+        AssetBalance balance = restClient.getAccount().getAssetBalance(currency);
+        return new ClientBalance(balance.getAsset(), balance.getFree(), balance.getLocked());
     }
 
-    public String getAssetBalanceForCurrency(@NonNull String currency) {
-
-        return restClient.getAccount().getAssetBalance(currency).getAsset();
-    }
 
     public String getCurrentPrice(String currentTradePair) {
 

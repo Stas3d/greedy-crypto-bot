@@ -1,6 +1,7 @@
 package com.algotrader.service;
 
 import com.algotrader.cache.LastTrendCache;
+import com.algotrader.dto.ClientBalance;
 import com.algotrader.dto.ClientOrder;
 import com.algotrader.mapper.OrdersMapper;
 import com.algotrader.util.Constants;
@@ -50,14 +51,10 @@ public class TradingStrategy {
 
     private final OrdersMapper ordersMapper;
 
-    public String getFreeBalanceFor(String currency) {
 
-        return orderService.getFreeBalanceForCurrency(currency);
-    }
+    public ClientBalance getAssetBalanceFor(String currency) {
 
-    public String getAssetBalanceFor(String currency) {
-
-        return orderService.getAssetBalanceForCurrency(currency);
+        return orderService.getBalanceForCurrency(currency);
     }
 
     public void saveCurrentPrice() {
@@ -132,12 +129,6 @@ public class TradingStrategy {
         }
     }
 
-    public void forceExit() {
-
-        logger.info("*** EMERGENCY EXIT");
-        panicStrategyService.initiateAppShutDown();
-    }
-
     public String panicSell() {
 
         logger.info("*** EMERGENCY SELL " + getAssetBalanceForCurrency(USDT));
@@ -152,15 +143,13 @@ public class TradingStrategy {
             openOrders.forEach(o ->
                     cancelOrder(o.clientOrderId()));
         } else {
-            logger.info("*** No Order Found ***");
+            logger.info("*** No Orders Found ***");
         }
     }
 
-    public String cancelCurrentOrderAndBuy() {
+    private void cancelOrder(String clientOrderId) {
 
-        cancelCurrentOrders();
-        logger.info("*** Buy for current price order ");
-        return orderService.createMarketBuy(buyQuantity);
+        orderService.cancelOrder(currentTradePair, clientOrderId);
     }
 
     private boolean checkIfNeedExit(final String currentPrice) {
@@ -208,19 +197,14 @@ public class TradingStrategy {
 
     private boolean isEnoughAssetBalance(final String currency, final Double limit) {
 
-        String value = orderService.getFreeBalanceForCurrency(currency);
+        String value = getAssetBalanceFor(currency).free();
         return Double.parseDouble(value) > limit;
     }
 
     private double getAssetBalanceForCurrency(final String currency) {
 
-        String value = orderService.getFreeBalanceForCurrency(currency);
+        String value = getAssetBalanceFor(currency).free();
         return Double.parseDouble(value);
-    }
-
-    private void cancelOrder(String clientOrderId) {
-
-        orderService.cancelOrder(currentTradePair, clientOrderId);
     }
 
     private boolean canEnter() { // TODO REM0VE REDUNDANT

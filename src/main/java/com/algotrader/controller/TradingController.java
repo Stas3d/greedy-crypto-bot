@@ -1,6 +1,7 @@
 package com.algotrader.controller;
 
 import com.algotrader.dto.ClientBalance;
+import com.algotrader.service.PanicStrategyService;
 import com.algotrader.service.TradingStrategy;
 
 import lombok.RequiredArgsConstructor;
@@ -12,42 +13,29 @@ import org.springframework.web.bind.annotation.*;
 public class TradingController {
 
     private final TradingStrategy strategy;
+    private final PanicStrategyService panicStrategyService;
 
     @RequestMapping(method = RequestMethod.GET, value = "/balance/asset/{currency}")
-    public ResponseEntity<ClientBalance> getCurrentAssetBalance(@PathVariable String currency) {
-        return ResponseEntity.ok(
-                new ClientBalance(currency, strategy.getAssetBalanceFor(currency)));
+    public ResponseEntity<ClientBalance> getCurrentClientBalance(@PathVariable String currency) {
+        return ResponseEntity.ok(strategy.getAssetBalanceFor(currency));
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "/balance/free/{currency}")
-    public ResponseEntity<ClientBalance> getCurrentFreeBalance(@PathVariable String currency) {
-        return ResponseEntity.ok(
-                new ClientBalance(currency, strategy.getFreeBalanceFor(currency)));
-    }
-
-    @RequestMapping(method = RequestMethod.POST, value = "orders/cancel-all")
-    public void cancelCurrent() {
+    @RequestMapping(method = RequestMethod.POST, value = "/orders/cancel-all")
+    public ResponseEntity<String> cancelCurrentOrders() {
         strategy.cancelCurrentOrders();
+        return ResponseEntity.ok("ALL_CANCELED");
     }
 
-    @RequestMapping(method = RequestMethod.POST, value = "/manual/cancel-current-order-and-buy")
-    public void cancelCurrentAndBuy() {
-        strategy.cancelCurrentOrderAndBuy();
-    }
-
-    @RequestMapping(method = RequestMethod.POST, value = "/manual/panic-sell")
-    public void panicSell() {
+    @RequestMapping(method = RequestMethod.POST, value = "/orders/panic-sell")
+    public ResponseEntity<String> panicSell() {
         strategy.panicSell();
+        return ResponseEntity.ok("PANIC_SELL");
     }
 
-    @RequestMapping(method = RequestMethod.POST, value = "/manual/panic-sell-and-exit")
-    public void panicSellAndExit() {
+    @RequestMapping(method = RequestMethod.POST, value = "/orders/sell-exit")
+    public ResponseEntity<String> panicSellAndExit() {
         strategy.panicSell();
-        strategy.forceExit();
-    }
-
-    @RequestMapping(method = RequestMethod.POST, value = "/manual/just-exit")
-    public void justExit() {
-        strategy.forceExit();
+        panicStrategyService.initiateAppShutDown();
+        return ResponseEntity.ok("PANIC_SELL&&EXIT");
     }
 }
