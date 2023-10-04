@@ -4,7 +4,6 @@ import com.algotrader.cache.LastTrendCache;
 import com.algotrader.dto.ClientBalance;
 import com.algotrader.dto.ClientOrder;
 import com.algotrader.mapper.OrdersMapper;
-import com.algotrader.util.Constants;
 import com.algotrader.util.Converter;
 
 import lombok.RequiredArgsConstructor;
@@ -12,8 +11,6 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -70,7 +67,6 @@ public class TradingStrategy {
             return;
         }
         List<ClientOrder> openOrders = getOpenOrders();
-
         ClientOrder currentOrder = null;
         if (!openOrders.isEmpty()) {
 
@@ -83,47 +79,35 @@ public class TradingStrategy {
         }
 
         if (isFirstRun) {
-            showTime();
-            var current = (currentOrder != null) ? currentOrder : ORDER_UNAVAILABLE_MSG;
-            logger.info(current.toString());
+            logger.info((currentOrder != null) ? currentOrder.toString() : ORDER_UNAVAILABLE_MSG);
             isFirstRun = Boolean.FALSE;
+            logger.info("*** Asset Balance for BTC = " + getAssetBalanceForCurrency(BTC));
+            logger.info("*** Asset Balance for USDT = " + getAssetBalanceForCurrency(USDT));
         }
-
         if (panicStrategyService.isThreshold()) {
             logger.info("*** Provide emergency panic sell");
             String orderId = panicSell();
             logger.info("*** EMERGENCY orderId is " + orderId);
             panicStrategyService.initiateAppShutDown();
         }
-
         if (openOrders.isEmpty() && isEnoughAssetBalance(USDT, enoughAssetBalance)) {
-            showTime();
-            logger.info(BUY_MSG);
             double enterPrice = findEnterPrice();
             String orderId = createBuyOrder(enterPrice);
             logger.info(BUY_ORDER_MSG + orderId);
             panicStrategyService.discard();
-
         } else if (openOrders.isEmpty() && isEnoughAssetBalance(currentCoin, Double.parseDouble(buyQuantity))) {
-            showTime();
-            logger.info(SELL_MSG);
             double enterPrice = findExitPrice();
             String orderId = createSellOrder(enterPrice);
             logger.info(SELL_ORDER_MSG + orderId);
-
         } else if (currentOrder != null && BUY_ORDER_SIDE.equals(currentOrder.side())) {
-
             if (checkIfNeedExit(currentOrder.price())) {
                 cancelOrder(currentOrder.clientOrderId());
             }
-
         } else if (currentOrder != null && SELL_ORDER_SIDE.equals(currentOrder.side())) {
-
             if (checkIfNeedExit(currentOrder.price())) {
                 panicStrategyService.incrementSellCount();
                 cancelOrder(currentOrder.clientOrderId());
             }
-
         } else {
             logger.info(UNEXPECTED_MSG + currentOrder);
         }
@@ -140,8 +124,7 @@ public class TradingStrategy {
         logger.info("*** Cancel All Current Orders ***");
         List<ClientOrder> openOrders = getOpenOrders();
         if (!openOrders.isEmpty()) {
-            openOrders.forEach(o ->
-                    cancelOrder(o.clientOrderId()));
+            openOrders.forEach(o -> cancelOrder(o.clientOrderId()));
         } else {
             logger.info("*** No Orders Found ***");
         }
@@ -210,12 +193,5 @@ public class TradingStrategy {
     private boolean canEnter() { // TODO REM0VE REDUNDANT
 
         return trendCache.isComfy();
-    }
-
-    private void showTime() {
-
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern(Constants.PATTERN);
-        LocalDateTime now = LocalDateTime.now();
-        logger.info("*** " + dtf.format(now));
     }
 }

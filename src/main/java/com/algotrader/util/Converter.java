@@ -10,7 +10,7 @@ public class Converter {
 
     public static String convertToStringDecimal(double enterPrice) {
 
-        DecimalFormat df = new DecimalFormat(PATTERN);
+        var df = new DecimalFormat(PATTERN);
         df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.ENGLISH));
         return df.format(enterPrice);
     }

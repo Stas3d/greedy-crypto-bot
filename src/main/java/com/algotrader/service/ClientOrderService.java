@@ -57,16 +57,13 @@ public class ClientOrderService {
         if (apiKey.isEmpty() || apiSecret.isEmpty()) {
             throw new NoCredentialsException();
         }
-
         restClient = BinanceApiClientFactory
                 .newInstance(apiKey, apiSecret)
                 .newRestClient();
 
         restClient.ping();
-
-        Account account;
         try {
-            account = getAcc();
+            restClient.getAccount();
         } catch (com.binance.api.client.exception.BinanceApiException binanceApiException) {
             logger.warning("Signature is not valid, check credentials");
             throw new InvalidCredentialsException();
@@ -74,8 +71,6 @@ public class ClientOrderService {
             logger.warning("Unknown exception");
             throw new RuntimeException("Exception when first api call");
         }
-        logger.info("*** Asset Balance for BTC = " + account.getAssetBalance(BTC));
-        logger.info("*** Asset Balance for USDT = " + account.getAssetBalance(USDT));
     }
 
     public String createMarketBuy(String quantity) {
@@ -139,10 +134,5 @@ public class ClientOrderService {
                 " with price : " + newOrderResponse.getPrice());
 
         return newOrderResponse.getClientOrderId();
-    }
-
-    private Account getAcc() {
-
-        return restClient.getAccount();
     }
 }
