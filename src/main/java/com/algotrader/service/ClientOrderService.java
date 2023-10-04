@@ -1,7 +1,7 @@
 package com.algotrader.service;
 
 import com.algotrader.dto.ClientBalance;
-import com.algotrader.exception.InvalidCredentialsException;
+import com.algotrader.exception.ApiException;
 import com.algotrader.exception.NoCredentialsException;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
@@ -64,11 +64,12 @@ public class ClientOrderService {
         restClient.ping();
         try {
             restClient.getAccount();
-        } catch (com.binance.api.client.exception.BinanceApiException binanceApiException) {
-            logger.warning("Signature is not valid, check credentials");
-            throw new InvalidCredentialsException();
+        } catch (com.binance.api.client.exception.BinanceApiException apiException) {
+            logger.warning("BinanceApiException message: " + apiException.getError().getMsg());
+            logger.warning("Cause: " + apiException.getCause());
+            throw new ApiException(apiException.getError().getMsg(), apiException.getCause());
         } catch (Exception exception) {
-            logger.warning("Unknown exception");
+            logger.warning("Cause: " + exception.getCause());
             throw new RuntimeException("Exception when first api call");
         }
     }
