@@ -1,6 +1,6 @@
 package com.algotrader.service;
 
-import com.algotrader.cache.LastTrendCache;
+import com.algotrader.cache.BackgroundCache;
 import com.algotrader.dto.ClientBalance;
 import com.algotrader.dto.ClientOrder;
 import com.algotrader.mapper.OrdersMapper;
@@ -40,7 +40,7 @@ public class TradingStrategy {
     @Value("${enough.asset.balance}")
     private double enoughAssetBalance;
 
-    private final LastTrendCache trendCache;
+    private final BackgroundCache trendCache;
 
     private final PanicStrategyService panicStrategyService;
 
