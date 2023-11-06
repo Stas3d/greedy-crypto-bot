@@ -31,6 +31,7 @@ public class BackgroundCache {
         return cache.asMap()
                 .values()
                 .stream()
+                .filter(Objects::nonNull)
                 .mapToDouble(a -> a)
                 .average();
     }

@@ -25,13 +25,13 @@ public class PanicStrategyService {
     public void discard() {
 
         sellCount = 0;
-        logger.info("*** PanicStrategy sellCount discarded : " + sellCount);
+        logger.info(">>> PanicStrategy sellCount discarded : " + sellCount);
     }
 
     public void incrementSellCount() {
 
         sellCount++;
-        logger.info("*** PanicStrategy current sellCount : " + sellCount);
+        logger.info(">>> PanicStrategy current sellCount : " + sellCount);
     }
 
     public boolean isThreshold() {
@@ -41,6 +41,7 @@ public class PanicStrategyService {
 
     public void initiateAppShutDown() {
 
+        logger.warning(">>> Application shutDown executing ... ");
         SpringApplication.exit(context, () -> EXIT_CODE);
     }
 }

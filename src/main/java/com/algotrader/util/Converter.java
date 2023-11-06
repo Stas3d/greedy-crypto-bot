@@ -6,11 +6,11 @@ import java.util.Locale;
 
 public class Converter {
 
-    private static final String PATTERN = "0.00";
+    private static final String FORMAT_PATTERN = "0.00";
 
     public static String convertToStringDecimal(double enterPrice) {
 
-        var df = new DecimalFormat(PATTERN);
+        var df = new DecimalFormat(FORMAT_PATTERN);
         df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.ENGLISH));
         return df.format(enterPrice);
     }

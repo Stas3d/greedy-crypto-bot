@@ -44,7 +44,7 @@ public class ClientOrderService {
     @PostConstruct
     public void postConstruct() {
 
-        logger.info("*** GRID BOT 2023 *** \n Current settings : currentTradePair = " + currentTradePair
+        logger.info(">>> *** GRID BOT 2023 *** \n Current settings : currentTradePair = " + currentTradePair
                 + "; \nenterPriceParam + " + enterPriceParam
                 + "; \nexitPriceParam = " + exitPriceParam
                 + "; \nexit level percentage = " + exitLevel + "%;");
@@ -76,23 +76,25 @@ public class ClientOrderService {
 
     public String createMarketBuy(String quantity) {
 
+        logger.info(">>> Creating MARKET_BUY order ");
         return createOrder(marketBuy(currentTradePair, quantity));
     }
 
     public String createMarketSell(String quantity) {
 
+        logger.info(">>> Creating MARKET_SELL order ");
         return createOrder(marketSell(currentTradePair, quantity));
     }
 
-    public String createLimitBuy(String quantity,
-                                 String price) {
+    public String createLimitBuy(String quantity, String price) {
 
+        logger.info(">>> Creating LIMIT_BUY order ");
         return createOrder(limitBuy(currentTradePair, TimeInForce.GTC, quantity, price));
     }
 
-    public String createLimitSell(String quantity,
-                                  String price) {
+    public String createLimitSell(String quantity, String price) {
 
+        logger.info(">>> Creating LIMIT_SELL order ");
         return createOrder(limitSell(currentTradePair, TimeInForce.GTC, quantity, price));
     }
 
@@ -126,12 +128,12 @@ public class ClientOrderService {
 
         NewOrderResponse newOrderResponse = restClient.newOrder(order);
 
-        logger.info("*** New Order status : " + newOrderResponse.getStatus());
+        logger.info(">>> New Order status : " + newOrderResponse.getStatus());
         if (newOrderResponse.getStatus() == OrderStatus.REJECTED) {
-            logger.info("*** newOrderResponse REJECTED ");
+            logger.info(">>> newOrderResponse REJECTED ");
         }
 
-        logger.info("Order created with status : " + newOrderResponse.getStatus() +
+        logger.info(">>> Order created with status : " + newOrderResponse.getStatus() +
                 " with price : " + newOrderResponse.getPrice());
 
         return newOrderResponse.getClientOrderId();

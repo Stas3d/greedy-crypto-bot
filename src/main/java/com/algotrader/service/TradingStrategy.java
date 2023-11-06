@@ -3,6 +3,7 @@ package com.algotrader.service;
 import com.algotrader.cache.BackgroundCache;
 import com.algotrader.dto.ClientBalance;
 import com.algotrader.dto.ClientOrder;
+import com.algotrader.exception.CacheException;
 import com.algotrader.mapper.OrdersMapper;
 import com.algotrader.util.Converter;
 
@@ -41,15 +42,11 @@ public class TradingStrategy {
     private double enoughAssetBalance;
 
     private final BackgroundCache trendCache;
-
     private final PanicStrategyService panicStrategyService;
-
     private final ClientOrderService orderService;
-
     private final OrdersMapper ordersMapper;
 
-
-    public ClientBalance getAssetBalanceFor(String currency) {
+    public ClientBalance getAssetBalanceFor(final String currency) {
 
         return orderService.getBalanceForCurrency(currency);
     }
@@ -81,13 +78,13 @@ public class TradingStrategy {
         if (isFirstRun) {
             logger.info((currentOrder != null) ? currentOrder.toString() : ORDER_UNAVAILABLE_MSG);
             isFirstRun = Boolean.FALSE;
-            logger.info("*** Asset Balance for BTC = " + getAssetBalanceForCurrency(BTC));
-            logger.info("*** Asset Balance for USDT = " + getAssetBalanceForCurrency(USDT));
+            logger.info(">>> Asset Balance for BTC = " + getAssetBalanceForCurrency(BTC));
+            logger.info(">>> Asset Balance for USDT = " + getAssetBalanceForCurrency(USDT));
         }
         if (panicStrategyService.isThreshold()) {
-            logger.info("*** Provide emergency panic sell");
+            logger.info(">>> Provide emergency panic sell");
             String orderId = panicSell();
-            logger.info("*** EMERGENCY orderId is " + orderId);
+            logger.info(">>> EMERGENCY orderId is " + orderId);
             panicStrategyService.initiateAppShutDown();
         }
         if (openOrders.isEmpty() && isEnoughAssetBalance(USDT, enoughAssetBalance)) {
@@ -115,29 +112,29 @@ public class TradingStrategy {
 
     public String panicSell() {
 
-        logger.info("*** EMERGENCY SELL " + getAssetBalanceForCurrency(USDT));
+        logger.info(">>> EMERGENCY SELL " + getAssetBalanceForCurrency(USDT));
         return orderService.createMarketSell(buyQuantity);
     }
 
     public void cancelCurrentOrders() {
 
-        logger.info("*** Cancel All Current Orders ***");
+        logger.info(">>> Cancel All Current Orders");
         List<ClientOrder> openOrders = getOpenOrders();
         if (!openOrders.isEmpty()) {
-            openOrders.forEach(o -> cancelOrder(o.clientOrderId()));
+            openOrders.forEach(order -> cancelOrder(order.clientOrderId()));
         } else {
-            logger.info("*** No Orders Found ***");
+            logger.info(">>> No opened orders found");
         }
     }
 
-    private void cancelOrder(String clientOrderId) {
+    private void cancelOrder(final String clientOrderId) {
 
         orderService.cancelOrder(currentTradePair, clientOrderId);
     }
 
     private boolean checkIfNeedExit(final String currentPrice) {
 
-        double averagePrice = trendCache.getAverage().getAsDouble();
+        double averagePrice = trendCache.getAverage().orElseThrow(CacheException::new);
         double orderPrice = parseDouble(currentPrice);
         return Math.abs((averagePrice - orderPrice) * 100D / averagePrice) > exitLevel;
     }
@@ -145,14 +142,12 @@ public class TradingStrategy {
     private String createBuyOrder(double enterPrice) {
 
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
-        logger.info("*** Creating BUY order ");
         return orderService.createLimitBuy(buyQuantity, formatPrice);
     }
 
     private String createSellOrder(double enterPrice) {
 
         String formatPrice = Converter.convertToStringDecimal(enterPrice);
-        logger.info("*** Creating SELL order ");
         return orderService.createLimitSell(buyQuantity, formatPrice);
     }
 
@@ -160,37 +155,38 @@ public class TradingStrategy {
 
         return orderService.getOpenOrders(currentTradePair)
                 .stream()
+                .filter(Objects::nonNull)
                 .map(ordersMapper::toRecord)
                 .collect(Collectors.toList());
     }
 
     private double findEnterPrice() {
 
-        double enterPrice = trendCache.getAverage().getAsDouble();
+        double enterPrice = trendCache.getAverage().orElseThrow(CacheException::new);
         enterPrice *= enterPriceParam;
         return enterPrice;
     }
 
     private double findExitPrice() {
 
-        double exitPrice = trendCache.getAverage().getAsDouble();
+        double exitPrice = trendCache.getAverage().orElseThrow(CacheException::new);
         exitPrice *= exitPriceParam;
         return exitPrice;
     }
 
     private boolean isEnoughAssetBalance(final String currency, final Double limit) {
 
-        String value = getAssetBalanceFor(currency).free();
-        return Double.parseDouble(value) > limit;
+        String freeBalanceValue = getAssetBalanceFor(currency).free();
+        return Double.parseDouble(freeBalanceValue) > limit;
     }
 
     private double getAssetBalanceForCurrency(final String currency) {
 
-        String value = getAssetBalanceFor(currency).free();
-        return Double.parseDouble(value);
+        String freeBalanceValue = getAssetBalanceFor(currency).free();
+        return Double.parseDouble(freeBalanceValue);
     }
 
-    private boolean canEnter() { // TODO REM0VE REDUNDANT
+    private boolean canEnter() {
 
         return trendCache.isComfy();
     }
