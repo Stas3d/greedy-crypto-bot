@@ -3,6 +3,7 @@ package com.algotrader.handler;
 import com.algotrader.dto.BaseErrorDetailsDto;
 import com.algotrader.dto.BaseErrorResponseDto;
 import com.algotrader.exception.ApiException;
+import com.algotrader.exception.CacheException;
 import com.algotrader.exception.NoCredentialsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,6 +30,15 @@ public class TraderExceptionHandler {
         var details = BaseErrorDetailsDto.builder().name("reason").reason("bad-credentials").build();
         var responseDto = buildBaseErrorResponseDto("VALIDATION_ERROR", "title", List.of(details));
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseDto);
+    }
+
+    @ExceptionHandler(CacheException.class)
+    protected ResponseEntity<BaseErrorResponseDto> handleCacheException(CacheException e) {
+        var details = BaseErrorDetailsDto.builder().name("reason").reason("cache-exception").build();
+        var responseDto = buildBaseErrorResponseDto("CACHE_ERROR", "title", List.of(details));
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(responseDto);
     }

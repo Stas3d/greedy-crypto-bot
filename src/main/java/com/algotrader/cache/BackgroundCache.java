@@ -50,8 +50,4 @@ public class BackgroundCache {
 
         return cache.size() > comfyLevel;
     }
-
-    public long getSize() {
-        return cache.size();
-    }
 }
